@@ -234,11 +234,16 @@ class _ChoicesMeta(type):
                 classDict[choice._ChoicesEntry__raw_name] = choice
         classDict['__groups__'] = groups
         classDict['__choices__'] = values
-        metaclass = tuple(set(type(cls) for key, cls in classDict))
-        metaclass = metaclass[0] if len(metaclass) == 1 \
-            else type('_'.join(mcs.__name__ for mcs in metaclass), metaclass, {})  # class M_C
-        return metaclass('_'.join(cls.__name__ for cls in classDict), classDict, {})
-        #return type.__new__(mcs, classname, bases, classDict)
+        # for key in classDict.iteritems():
+        #     print(key)
+        # metaclass = tuple(set(type(cls) for cls in classDict))
+        # if len(metaclass) == 1:
+        #     metaclass = metaclass[0]
+        # else:
+        #     print(str('_'.join(mcs.__name__ for mcs in metaclass)))
+        #     metaclass = type(str('_'.join(mcs.__name__ for mcs in metaclass)), metaclass, {})
+        # return metaclass('_'.join(cls[1].__name__ for cls in classDict.iteritems()), classDict, {})
+        return type.__new__(mcs, classname, bases, classDict)
 
 
 class Choices(six.with_metaclass(_ChoicesMeta, list)):
