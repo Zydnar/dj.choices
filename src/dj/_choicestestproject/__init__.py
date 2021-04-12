@@ -26,7 +26,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from unittest.loader import defaultTestLoader
+from unittest import defaultTestLoader
 
 from django.conf import settings
 from django.test import TestCase

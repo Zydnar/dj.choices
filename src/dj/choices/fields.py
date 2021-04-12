@@ -50,7 +50,7 @@ class ChoiceField(six.with_metaclass(SubfieldBase, IntegerField)):
     description = _("Integer")
 
     def __init__(self, *args, **kwargs):
-        if kwargs.get('_in_south'): # workaround for South removing `choices`
+        if kwargs.get('_in_south'):  # workaround for South removing `choices`
             kwargs['choices'] = Gender
             del kwargs['_in_south']
         if 'choices' not in kwargs or not isinstance(kwargs['choices'], type):
@@ -61,12 +61,12 @@ class ChoiceField(six.with_metaclass(SubfieldBase, IntegerField)):
                     raise TypeError()
             except TypeError:
                 raise exceptions.ImproperlyConfigured("dj.choices class "
-                        "required as `choices` argument.")
+                                                      "required as `choices` argument.")
         self.choice_class = kwargs['choices']
         self.item_getter = kwargs.get('item', lambda x: (x.id,))
         kwargs['choices'] = self.choice_class(item=kwargs.get('item', unset),
-            filter=kwargs.get('filter', (unset,)), grouped=kwargs.get('grouped',
-                False))
+                                              filter=kwargs.get('filter', (unset,)), grouped=kwargs.get('grouped',
+                                                                                                        False))
         if isinstance(kwargs.get('default'), Choices.Choice):
             kwargs['default'] = self.item_getter(kwargs['default'])[0]
         for arg in 'filter', 'grouped', 'item':
@@ -117,7 +117,7 @@ class ChoiceField(six.with_metaclass(SubfieldBase, IntegerField)):
 
     def validate(self, value, model_instance):
         return super(ChoiceField, self).validate(self.get_prep_value(value),
-                model_instance)
+                                                 model_instance)
 
     def formfield(self, form_class=forms.CharField, **kwargs):
         """Has to be defined as a whole without doing super() because of
@@ -133,10 +133,10 @@ class ChoiceField(six.with_metaclass(SubfieldBase, IntegerField)):
             # Fields with choices get special treatment.
             include_blank = self.blank or not (self.has_default() or 'initial' in kwargs)
             defaults['choices'] = self.get_choices(include_blank=include_blank)
-            defaults['coerce'] = self.from_python # XXX: changed
+            defaults['coerce'] = self.from_python  # XXX: changed
             if self.null:
                 defaults['empty_value'] = None
-            form_class = _TypedChoiceField # XXX: changed
+            form_class = _TypedChoiceField  # XXX: changed
             # Many of the subclass-specific formfield arguments (min_value,
             # max_value) don't apply for choice fields, so be sure to only pass
             # the values that TypedChoiceField will understand.

@@ -261,7 +261,7 @@ class SimpleTest(TestCase):
         self.assertEqual(tom2.color, Color.red)
         tom_and_judy = Favourites.objects.filter(color__in=(Color.blue, Color.red))
         self.assertEqual(tom_and_judy.count(), 2)
-        self.assertEqual(set(obj.name for obj in tom_and_judy), set(['Judy', 'Tom']))
+        self.assertEqual(set(obj.name for obj in tom_and_judy), {'Judy', 'Tom'})
         self.assertEqual(tom2.get_sport_display(), 'Mountaineering')
 
     def test_form_with_choicefields(self):

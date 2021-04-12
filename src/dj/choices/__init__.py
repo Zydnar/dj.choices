@@ -42,7 +42,7 @@ class ChoicesEntry(int):
     global_id = 0
 
     def __new__(cls, *args, **kwargs):
-        return  super(ChoicesEntry, cls).__new__(
+        return super(ChoicesEntry, cls).__new__(
             cls, kwargs[str('id')]
         )
 
@@ -85,8 +85,7 @@ class ChoicesEntry(int):
                 name = name[2:-1]
             else:
                 name = name[1:-1]
-        return "<{}: {} (id: {})>".format(self.__class__.__name__,
-            name, self.id)
+        return "<{}: {} (id: {})>".format(self.__class__.__name__, name, self.id)
 
     def __str__(self, raw=False):
         """Returns Unicode on Py3, bytes on Py2."""
@@ -134,8 +133,7 @@ class ChoiceGroup(ChoicesEntry):
     """A group of choices."""
 
     def __new__(cls, *args, **kwargs):
-        return  super(ChoiceGroup, cls).__new__(cls, id=kwargs.get(str('id'),
-            args[0]))
+        return super(ChoiceGroup, cls).__new__(cls, id=kwargs.get(str('id'), args[0]))
 
     def __init__(self, id, description=''):
         super(ChoiceGroup, self).__init__(description, id=id)
@@ -146,17 +144,16 @@ class Choice(ChoicesEntry):
     """A single choice."""
 
     def __new__(cls, *args, **kwargs):
-        return  super(Choice, cls).__new__(cls, id=kwargs.get(str('id'),
-            no_id_given))
+        return super(Choice, cls).__new__(cls, id=kwargs.get(str('id'), no_id_given))
 
     def __init__(self, description, id=no_id_given, name=None):
         super(Choice, self).__init__(description, id=id, name=name)
         self.group = None
 
-    def __unicode__(self):
+    def __unicode__(self, **kwargs):
         return self.desc
 
-    def __str__(self):
+    def __str__(self, **kwargs):
         result = self.__unicode__()
         if six.PY2:
             result = result.encode('utf8')
@@ -174,16 +171,14 @@ class Choice(ChoicesEntry):
             rawval = rawval[2:-1]
         else:
             rawval = rawval[1:-1]
-        result = "<{}: {} (id: {}, name: {})>".format(self.__class__.__name__,
-            rawval, self.id, name)
+        result = "<{}: {} (id: {}, name: {})>".format(self.__class__.__name__, rawval, self.id, name)
         if six.PY2:
             result = result.encode('utf8')
         return result
 
 
 def _getter(name, given, returns, found, getter):
-    def impl(cls, id, found=lambda id, k, v: False,
-                        getter=lambda id, k, v: None, fallback=unset):
+    def impl(cls, id, found=lambda id, k, v: False, getter=lambda id, k, v: None, fallback=unset):
         """Unless `fallback` is set, raises ValueError if name not present."""
         for k, v in cls.__dict__.items():
             if isinstance(v, ChoicesEntry) and found(id, k, v):
@@ -192,17 +187,18 @@ def _getter(name, given, returns, found, getter):
             raise ValueError("Nothing found for '{}'.".format(id))
         else:
             return fallback
+
     function = partial(impl, found=found, getter=getter)
     function.__name__ = name
     function.__doc__ = ("Choices.{name}({given}, fallback=unset) -> {returns}"
-        "\n\nGiven the `{given}`, returns the `{returns}`. {impl_doc}"
-        "".format(name=name, given=given, returns=returns,
-            impl_doc=impl.__doc__))
+                        "\n\nGiven the `{given}`, returns the `{returns}`. {impl_doc}"
+                        "".format(name=name, given=given, returns=returns,
+                                  impl_doc=impl.__doc__))
     return classmethod(function)
 
 
 class _ChoicesMeta(type):
-    def __new__(meta, classname, bases, classDict):
+    def __new__(mcs, classname, bases, classDict):
         groups = []
         values = []
         raw_values = []
@@ -223,7 +219,7 @@ class _ChoicesMeta(type):
                 if choice.id == no_id_given:
                     last_choice_id += 1
                     c = Choice(choice.raw, id=last_choice_id,
-                        name=choice.name)
+                               name=choice.name)
                     d = dict(((k, getattr(choice, k)) for k in
                               choice.__extra__))
                     choice = c.extra(**d)
@@ -238,7 +234,11 @@ class _ChoicesMeta(type):
                 classDict[choice._ChoicesEntry__raw_name] = choice
         classDict['__groups__'] = groups
         classDict['__choices__'] = values
-        return type.__new__(meta, classname, bases, classDict)
+        metaclass = tuple(set(type(cls) for key, cls in classDict))
+        metaclass = metaclass[0] if len(metaclass) == 1 \
+            else type('_'.join(mcs.__name__ for mcs in metaclass), metaclass, {})  # class M_C
+        return metaclass('_'.join(cls.__name__ for cls in classDict), classDict, {})
+        #return type.__new__(mcs, classname, bases, classDict)
 
 
 class Choices(six.with_metaclass(_ChoicesMeta, list)):
@@ -253,6 +253,7 @@ class Choices(six.with_metaclass(_ChoicesMeta, list)):
         IDs are the same regardless of the filtering. This is useful
         for predefining a large set of possible values and filtering to
         only the ones which are currently implemented."""
+        super(Choices, self).__init__()
         if not self.__choices__:
             raise ValueError("Choices class declared with no actual "
                              "choice fields.")
@@ -264,7 +265,7 @@ class Choices(six.with_metaclass(_ChoicesMeta, list)):
                 group_choices = []
                 for choice in group.choices:
                     if choice.name in filter or (unset in filter and
-                        isinstance(choice, Choice)):
+                                                 isinstance(choice, Choice)):
                         group_choices.append(item(choice))
                 if group_choices:
                     self.append((group.desc, tuple(group_choices)))
@@ -272,72 +273,76 @@ class Choices(six.with_metaclass(_ChoicesMeta, list)):
             if grouped:
                 import warnings
                 warnings.warn("Choices class called with grouped=True and no "
-                    "actual groups.")
+                              "actual groups.")
             for choice in self.__choices__:
                 if choice.name in filter or (unset in filter and
-                    isinstance(choice, Choice)):
+                                             isinstance(choice, Choice)):
                     self.append(item(choice))
 
     from_name = _getter("from_name",
-        given="name",
-        returns="choice object",
-        found=lambda id, k, v: k == id,
-        getter=lambda id, k, v: v)
+                        given="name",
+                        returns="choice object",
+                        found=lambda id, k, v: k == id,
+                        getter=lambda id, k, v: v)
 
     id_from_name = _getter("id_from_name",
-        given="name",
-        returns="id",
-        found=lambda id, k, v: k == id,
-        getter=lambda id, k, v: v.id)
+                           given="name",
+                           returns="id",
+                           found=lambda id, k, v: k == id,
+                           getter=lambda id, k, v: v.id)
 
     desc_from_name = _getter("desc_from_name",
-        given="name",
-        returns="localized description string",
-        found=lambda id, k, v: k == id,
-        getter=lambda id, k, v: v.desc)
+                             given="name",
+                             returns="localized description string",
+                             found=lambda id, k, v: k == id,
+                             getter=lambda id, k, v: v.desc)
 
     raw_from_name = _getter("raw_from_name",
-        given="name",
-        returns="raw description string",
-        found=lambda id, k, v: k == id,
-        getter=lambda id, k, v: v.raw)
+                            given="name",
+                            returns="raw description string",
+                            found=lambda id, k, v: k == id,
+                            getter=lambda id, k, v: v.raw)
 
     from_id = _getter("from_id",
-        given="id",
-        returns="choice object",
-        found=lambda id, k, v: v.id == id,
-        getter=lambda id, k, v: v)
+                      given="id",
+                      returns="choice object",
+                      found=lambda id, k, v: v.id == id,
+                      getter=lambda id, k, v: v)
 
     name_from_id = _getter("name_from_id",
-        given="id",
-        returns="attribute name",
-        found=lambda id, k, v: v.id == id,
-        getter=lambda id, k, v: k)
+                           given="id",
+                           returns="attribute name",
+                           found=lambda id, k, v: v.id == id,
+                           getter=lambda id, k, v: k)
 
     desc_from_id = _getter("desc_from_id",
-        given="id",
-        returns="localized description string",
-        found=lambda id, k, v: v.id == id,
-        getter=lambda id, k, v: v.desc)
+                           given="id",
+                           returns="localized description string",
+                           found=lambda id, k, v: v.id == id,
+                           getter=lambda id, k, v: v.desc)
 
     raw_from_id = _getter("raw_from_id",
-        given="id",
-        returns="raw description string",
-        found=lambda id, k, v: v.id == id,
-        getter=lambda id, k, v: v.raw)
+                          given="id",
+                          returns="raw description string",
+                          found=lambda id, k, v: v.id == id,
+                          getter=lambda id, k, v: v.raw)
 
     @staticmethod
     def to_ids(func):
         """Converts a sequence of choices to a sequence of choice IDs."""
+
         def wrapper(self):
             return (elem.id for elem in func(self))
+
         return wrapper
 
     @staticmethod
     def to_names(func):
         """Converts a sequence of choices to a sequence of choice names."""
+
         def wrapper(self):
             return (elem.name for elem in func(self))
+
         return wrapper
 
     Choice = Choice
@@ -605,10 +610,10 @@ class Country(Choices):
     african_union = _("African Union")
     arab_league = _("Arab League")
     association_of_southeast_asian_nations = \
-            _("Association of Southeast Asian Nations")
+        _("Association of Southeast Asian Nations")
     caricom = _("Caricom")
     commonwealth_of_independent_states = \
-            _("Commonwealth of Independent States")
+        _("Commonwealth of Independent States")
     commonwealth_of_nations = _("Commonwealth of Nations")
     european_union = _("European Union")
     islamic_conference = _("Islamic Conference")
@@ -640,6 +645,7 @@ def _language_lookup_getter(overrides, getter):
             raise ValueError("Nothing found for '{}'.".format(id))
         else:
             return fallback
+
     function = partial(impl, getter=getter)
     function.__name__ = overrides.__name__
     function.__doc__ = overrides.__doc__ + " " + dedent(impl.__doc__)
@@ -853,16 +859,16 @@ class Language(Choices):
     zu = _("Zulu")
 
     from_name = _language_lookup_getter(overrides=Choices.from_name,
-        getter=lambda choice: choice)
+                                        getter=lambda choice: choice)
 
     id_from_name = _language_lookup_getter(overrides=Choices.id_from_name,
-        getter=lambda choice: choice.id)
+                                           getter=lambda choice: choice.id)
 
     desc_from_name = _language_lookup_getter(overrides=Choices.desc_from_name,
-        getter=lambda choice: choice.desc)
+                                             getter=lambda choice: choice.desc)
 
     raw_from_name = _language_lookup_getter(overrides=Choices.raw_from_name,
-        getter=lambda choice: choice.raw)
+                                            getter=lambda choice: choice.raw)
 
     # deprecated compatibility layer for code using lck.django.choices < 0.8
     # to be removed at 1.0
